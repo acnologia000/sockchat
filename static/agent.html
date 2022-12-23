@@ -71,21 +71,26 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
     <script>
-        const URL = "http://localhost:4000";
+        const URL = new window.URL(document.URL).origin;
+        console.log(URL)
         const socket = io(URL, { autoConnect: false });
         const username = prompt("enter username") + "_agent"
+        const to_add = "COSTUMER_ID"
         var user_list = {}
 
         socket.auth = { username }
 
         socket.connect()
 
+        console.log("agent:connect:permanent firing");
+        socket.emit("agent:connect:permanent", { to: to_add, agent_name: username })
+
         var messages = document.getElementById('messages');
         var form = document.getElementById('form');
         var input = document.getElementById('input');
 
-        function Message(content, to_add) {
-            socket.emit("private message", {
+        function Message(content) {
+            socket.emit("message:private:permanent", {
                 content,
                 to: to_add,
             });
@@ -94,19 +99,23 @@
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (input.value) {
-                socket.emit('chat message', input.value);
+                //socket.emit('chat message', input.value);
+                Message(input.value)
+                var item = document.createElement('li');
+                item.textContent = input.value;
+                messages.appendChild(item)
+                window.scrollTo(0, document.body.scrollHeight);
                 input.value = '';
             }
         });
 
-        input.addEventListener("input", (e) => {
-            socket.emit('chat message', input.value)
+
+        socket.on("users:list", (data) => {
+            console.log(data)
+            user_list = data
         })
 
-        input.addEventListener("touchend", (e) => {
-            socket.emit('chat message', input.value)
-        })
-        socket.on("users:list", (data) => {
+        socket.on("users:alist", (data) => {
             console.log(data)
             user_list = data
         })

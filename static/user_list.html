@@ -11,7 +11,6 @@
 <body>
     <main>
         <ul id="client_list">
-
         </ul>
     </main>
 
@@ -19,17 +18,22 @@
 
     <script>
 
-        const URL = "ws://localhost:4000";
+        const URL = new window.URL(document.URL).origin;
         const socket = io(URL, { autoConnect: false });
-        const username = prompt("enter username") + "_agent"
-        var list = document.getElementById("client_list")
+        const username = "sname"
+
+        var listDOM = document.getElementById("client_list")
         var user_list = {}
         var last_message = {}
 
         socket.connect()
+        socket.auth = { username }
 
         socket.on("users:list", (list) => {
-            Array.from(list).forEach(elm => { console.log(elm); })
+            listDOM.innerHTML = ""
+            Array.from(list).forEach(elm => {
+                listDOM.innerHTML += `<li><a href='/user/${elm.username}'>${JSON.stringify(elm)}</a></li>`
+            })
         })
 
     </script>

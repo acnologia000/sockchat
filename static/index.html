@@ -71,42 +71,64 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
     <script>
-        const URL = "http://localhost:4000";
+        const URL = new window.URL(document.URL).origin;
         const socket = io(URL, { autoConnect: false });
-        var user_list = {}
-        var last_message = {}
-        var user_name = prompt("enter username") + "_user"
-
-        socket.auth = { user_name }
-
-        socket.connect()
+        var user_list = {};
+        var last_message = {};
+        var agentID = ""
 
         var messages = document.getElementById('messages');
         var form = document.getElementById('form');
         var input = document.getElementById('input');
 
-        function Message(content, to_add) {
+        function askQuestions(questions) {
+            console.log(Array.from(questions));
+        }
+
+        function makeid(length) {
+            var result = '';
+            var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var charactersLength = characters.length;
+            for (var i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+
+        function MessageToAgent(content) {
             socket.emit("private message", {
                 content,
-                to: to_add,
+                to: agentID,
             });
         }
+
+        var lastMessageTime = localStorage.getItem("lastMessageTime")
+
+        if (lastMessageTime === null || Date.now() - parseInt(lastMessageTime) / 6000000 > 5) {
+            localStorage.setItem("lastMessageTime", Date.now().toString())
+            localStorage.setItem("userID", makeid(7))
+        }
+
+        const username = localStorage.getItem("userID") + "_user";
+
+        socket.auth = { username };
+        socket.connect();
+
 
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (input.value) {
-                socket.emit('chat message', input.value);
+                //socket.emit('chat message', input.value);
+                MessageToAgent(input.value)
+                var item = document.createElement('li');
+                item.textContent = input.value;
+                messages.appendChild(item)
+                window.scrollTo(0, document.body.scrollHeight);
                 input.value = '';
             }
         });
 
-        input.addEventListener("input", (e) => {
-            socket.emit('chat message', input.value)
-        })
 
-        input.addEventListener("touchend", (e) => {
-            socket.emit('chat message', input.value)
-        })
         socket.on("users:list", (data) => {
             console.log(data)
             user_list = data
@@ -120,6 +142,16 @@
             last_message = item
             window.scrollTo(0, document.body.scrollHeight);
         });
+
+        socket.on("questions:sent", askQuestions)
+
+        socket.on("agent:connect", (data) => {
+            console.log("agent:connect recieved ", data)
+            var item = document.createElement('li');
+            item.textContent = "agent connected"
+            messages.appendChild(item)
+            agentID = data.from
+        })
     </script>
 </body>
 
