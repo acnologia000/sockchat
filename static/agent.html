@@ -71,6 +71,16 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
     <script>
+        function makeid(length) {
+            var result = '';
+            var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var charactersLength = characters.length;
+            for (var i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+        const chatID = makeid(128)
         const URL = new window.URL(document.URL).origin;
         console.log(URL)
         const socket = io(URL, { autoConnect: false });
@@ -96,11 +106,15 @@
             });
         }
 
+        function SaveMessage(content, to) {
+            socket.emit("store:message", { 'chat_id': chatID, content: content, sender: to })
+        }
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (input.value) {
                 //socket.emit('chat message', input.value);
                 Message(input.value)
+                SaveMessage(input.value,"a")
                 var item = document.createElement('li');
                 item.textContent = input.value;
                 messages.appendChild(item)
@@ -124,7 +138,7 @@
             var item = document.createElement('li');
             item.textContent = msg.content;
             messages.appendChild(item)
-
+            SaveMessage(msg.content,"c")
             window.scrollTo(0, document.body.scrollHeight);
         });
     </script>
