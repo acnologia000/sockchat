@@ -1,19 +1,20 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require("socket.io");
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-const misc = require("./misc.js")
+const express = require('express')
+const http = require('http')
+const { Server } = require("socket.io")
+const app = express()
+const server = http.createServer(app)
+const io = new Server(server)
 const { Pool } = require("pg")
 const pool = new Pool({ host: "localhost", user: "postgres", database: "chat_app" })
 pool.connect().catch(console.log)
 
+// local imports
+const misc = require("./misc.js")
 const SessionX = require("./session.js")
 const sessionPool = new SessionX()
 
 
-sessionPool.setKeyVal("key", "val")
+sessionPool.SetKeyVal("key", "val")
 
 var addressMap = new Map()
 var GeneratedOTPs = new Map()
@@ -140,9 +141,8 @@ io.on('connection', (socket) => {
     const MessageInsertQuery = "INSERT INTO MESSAGES(chat_id, content, unix_time, sender_type) VALUES($1, $2::text, $3, $4::char)"
     socket.on("store:message", (message) => {
         pool
-            .query(MessageInsertQuery, [message.chat_id, message.content, getNanoSeconds(), message.sender])
+            .query(MessageInsertQuery, [message.chat_id, message.content, misc.getNanoSeconds(), message.sender])
             .catch(console.log)
-
     })
 });
 
