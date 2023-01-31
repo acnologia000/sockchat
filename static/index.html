@@ -83,26 +83,15 @@
         var form = document.getElementById('form');
         var input = document.getElementById('input');
 
-        function askQuestions(questions) {
-            console.log(Array.from(questions));
-        }
-
         function makeid(length) {
             var result = '';
-            var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            var charactersLength = characters.length;
-            for (var i = 0; i < length; i++) {
-                result += characters.echarAt(Math.floor(Math.random() * charactersLength));
-            }
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const charactersLength = characters.length;
+            for (var i = 0; i < length; i++) { result += characters.charAt(Math.floor(Math.random() * charactersLength)); }
             return result;
         }
 
-        function MessageToAgent(content) {
-            socket.emit("private message", {
-                content,
-                to: agentID,
-            });
-        }
+        function MessageToAgent(content) { socket.emit("private message", { content, to: agentID, }); }
 
         var lastMessageTime = localStorage.getItem("lastMessageTime")
 
@@ -121,16 +110,12 @@
         }
 
         const username = localStorage.getItem("userID") + "_user";
-
-        socket.auth = { username };
+        const type = 'user'
+        const key = "default_key"
+        socket.auth = { username, key, type };
         socket.connect();
 
-        function SendAnswer(input) {
-            console.log("inside send answer")
-            socket.emit("question:submit", input)
-            console.log("answer sent")
-        }
-
+        function SendAnswer(input) { socket.emit("question:submit", input) }
         function VerifyOTP(input) { socket.emit("otp:verify", input) }
 
         form.addEventListener('submit', function (e) {
@@ -160,10 +145,7 @@
         });
 
 
-        socket.on("users:list", (data) => {
-            console.log(data)
-            user_list = data
-        })
+        socket.on("users:list", (data) => { user_list = data })
         socket.on('chat message', function (msg) {
             console.log(msg)
             var item = document.createElement('li');

@@ -3,7 +3,6 @@
 
 <head>
   <title>Login Page</title>
-  <!-- Link to Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
     integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
 </head>
@@ -39,32 +38,26 @@
     crossorigin="anonymous"></script>
   <script>
 
+    function storeUsernameAndKey(info) {
+      localStorage.setItem('skey', info.session_key)
+      localStorage.setItem('username', info.username)
+    }
+
+    let gdata = {}
     document.getElementById("form").onsubmit = (e) => {
+      localStorage.setItem("username", document.getElementById("username").value)
       e.preventDefault()
-      fetch('/login', {
+      fetch('/agent_login', {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: document.getElementById("username").value,
           password: document.getElementById("password").value
         })
       })
-        .then(response => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error('Failed to login');
-        })
-        .then(data => {
-          console.log(data);
-          // Set the session cookie
-          document.cookie = `session=${data.session}; path=/`; 
-          window.localStorage.setItem("skey", data.session)
-
-        })
+        .then(response => { if (response.ok) { return response.text(); } alert("login failed, please try again") })
+        .then(data => { storeUsernameAndKey(JSON.parse(data)); location.href = '/user_list.html' })
         .catch(error => console.error(error))
     }
 

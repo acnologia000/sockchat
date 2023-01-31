@@ -12,5 +12,7 @@ module.exports = {
             result += characters.charAt(Math.floor(Math.random() * charactersLength));
         }
         return result;
-    }
+    },
+    MessageInsertQuery: "INSERT INTO MESSAGES(chat_id, content, unix_time, sender_type) VALUES($1, $2::text, $3, $4::char)",
+    AgentLoginQuery: "SELECT pass from agents where username = $1 and pass = $2"
 }

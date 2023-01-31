@@ -13,39 +13,47 @@ const misc = require("./misc.js")
 const SessionX = require("./session.js")
 const sessionPool = new SessionX()
 
-
-sessionPool.SetKeyVal("key", "val")
-
 var addressMap = new Map()
 var GeneratedOTPs = new Map()
 
-function sendOTP(username) {
-    var rand = Math.floor(Math.random() * 10000)
-    console.log("inserting OTP", username, "  ", rand);
-    GeneratedOTPs.set(username, rand.toString())
-    console.log(rand)
-}
+function sendOTP(username) { var rand = Math.floor(Math.random() * 10000); GeneratedOTPs.set(username, rand.toString()) }
+
 //==============================================================================================================
 
 app.use(express.static("./static"))
 app.use(express.json())
-app.get("/user/:id", (req, res) => {
-    var id = req.params.id
-    console.log(id)
-    res.end(misc.agentChatPage.replace("COSTUMER_ID", id))
+
+app.post("/agent_login", async (req, res) => {
+    console.log(req.body)
+    pool.query(misc.AgentLoginQuery, [req.body.username, req.body.password], async (err, resp) => {
+        if (err) { res.status(500); res.end("INTERNAL_SERVER_ERROR"); console.log(err.stack); return }
+        resp.rowCount == 0 ? res.end("WRONG_CREDENTIALS") : res.end(`{"session_key":"${await sessionPool.StartSession(req.body.username)}"}`)
+    })
 })
 
-app.get("/otp_map/", (req, res) => {
-    res.json(Object.fromEntries(GeneratedOTPs))
-})
+app.get("/user/:id", (req, res) => { res.end(misc.agentChatPage.replace("COSTUMER_ID", req.params.id)) })
+app.get("/otp_map/", (req, res) => { res.json(Object.fromEntries(GeneratedOTPs)) })
 
+io.use(async (socket, next) => {
+    const username = socket.handshake.auth.username
+    const type = socket.handshake.auth.type
+    const key = socket.handshake.auth.key
 
-io.use((socket, next) => {
-    const username = socket.handshake.auth.username;
-    if (!username) {
-        return next(new Error("invalid username"));
+    if (!username || !key || !type) { return next(new Error("invalid username")) }
+    console.log('middleware reached here')
+
+    socket.username = username
+    socket.key = key
+    socket.type = type
+
+    if (type === 'agent' || type === 'master') {
+        if (!await sessionPool.VerifySession(key, username)) {
+            socket.emit('auth:status', "failed auth, wrong credentials")
+            console.log('authentication failed');
+            next(new Error('wrong key'))
+        } else {
+        }
     }
-    socket.username = username;
     next();
 });
 
@@ -53,23 +61,12 @@ io.on('connection', (socket) => {
     socket.responses = Array()
     socket.verified = false
     const users = [];
-    for (let [id, socket] of io.of("/").sockets) {
-        if (socket.username.includes("_user") && socket.verified) {
-            users.push({
-                userID: id,
-                username: socket.username,
-            });
-        }
-    }
+
+    for (let [id, socket] of io.of("/").sockets) { if (socket.username.includes("_user") && socket.verified) { users.push({ userID: id, username: socket.username, }) } }
 
     io.emit('users:list', users)
 
-    if (socket.username.includes("_user")) {
-        addressMap.set(socket.username, socket.id)
-        console.log(addressMap)
-    }
-
-
+    if (socket.username.includes("_user")) { addressMap.set(socket.username, socket.id) }
 
     socket.on("question:submit", async (answer) => {
         socket.responses.push(answer)
@@ -88,66 +85,31 @@ io.on('connection', (socket) => {
             socket.verified = true
             socket.emit("chat message", { content: "otp verified, now waiting for agent to connect" })
             socket.emit("setqmode", 3)
-            pool.query('insert into inquiries values($1, $2, $3, $4)', [...socket.responses, misc.getNanoSeconds()]).then(console.log).catch(console.log)
-            let ulist = [];
-            for (let [id, socket] of io.of("/").sockets) {
-                if (socket.username.includes("_user") && socket.verified) {
-                    ulist.push({
-                        userID: id,
-                        username: socket.username,
-                    });
-                }
-            }
-            console.log(ulist);
+
+            try { pool.query('insert into inquiries values($1, $2, $3, $4)', [...socket.responses, misc.getNanoSeconds()]).then(console.log).catch(console.log) }
+            catch (error) { console.log(error) }
+
+            const ulist = [];
+            for (let [id, socket] of io.of("/").sockets) { if (socket.username.includes("_user") && socket.verified) { ulist.push({ userID: id, username: socket.username, }) } }
             io.emit('users:list', ulist)
-        } else {
-            socket.emit("chat message", { content: "invalid otp, refresh page to try again" })
-        }
+        } else { socket.emit("chat message", { content: "invalid otp, refresh page to try again" }) }
     })
 
-    socket.on("message:private:permanent", ({ content, to }) => {
-        console.log("private message sent to", to, "  ", addressMap.get(to))
-        socket.to(addressMap.get(to)).emit("chat message", {
-            content,
-            from: socket.id,
-        });
-    });
-
-    socket.on("private message", ({ content, to }) => {
-        console.log("private message sent to", to)
-        socket.to(to).emit("chat message", {
-            content,
-            from: socket.id,
-        });
-    });
-
+    socket.on("message:private:permanent", ({ content, to }) => { socket.to(addressMap.get(to)).emit("chat message", { content, from: socket.id, }) });
+    socket.on("private message", ({ content, to }) => { socket.to(to).emit("chat message", { content, from: socket.id, }) });
     socket.on("agent:connect:permanent", (data) => { socket.to(addressMap.get(data.to)).emit("agent:connect", { data: data, from: socket.id }) })
-
     socket.on("agent:connect", (data) => { socket.to(data.to).emit("agent:connect", { data: data, from: socket.id }) })
 
     socket.on('disconnect', (reason) => {
-        console.log(reason);
         const users = [];
-        for (let [id, socket] of io.of("/").sockets) {
-            if (socket.username.includes("_user") && socket.verified) {
-                users.push({
-                    userID: id,
-                    username: socket.username,
-                });
-            }
-        }
+        for (let [id, socket] of io.of("/").sockets) { if (socket.username.includes("_user") && socket.verified) { users.push({ userID: id, username: socket.username, }); } }
         io.emit('users:list', users)
     });
-    const MessageInsertQuery = "INSERT INTO MESSAGES(chat_id, content, unix_time, sender_type) VALUES($1, $2::text, $3, $4::char)"
     socket.on("store:message", (message) => {
         pool
-            .query(MessageInsertQuery, [message.chat_id, message.content, misc.getNanoSeconds(), message.sender])
+            .query(misc.MessageInsertQuery, [message.chat_id, message.content, misc.getNanoSeconds(), message.sender])
             .catch(console.log)
     })
 });
 
-
-server.listen(4000, "0.0.0.0", () => {
-    console.log('listening on 0.0.0.0:4000');
-});
-
+server.listen(4000, "0.0.0.0", () => { console.log('listening on 0.0.0.0:4000') });

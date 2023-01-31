@@ -10,24 +10,25 @@
 
 <body>
     <main>
-        <ul id="client_list">
-        </ul>
+        <ul id="client_list"></ul>
     </main>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
     <script>
 
-        const URL = new window.URL(document.URL).origin;
-        const socket = io(URL, { autoConnect: false });
-        const username = "sname"
+        const URL = new window.URL(document.URL).origin
+        const socket = io(URL, { autoConnect: false })
+        const username = window.localStorage.getItem("username")
+        const key = window.localStorage.getItem("skey")
+        const type = 'agent'
 
         var listDOM = document.getElementById("client_list")
         var user_list = {}
         var last_message = {}
 
+        socket.auth = { username, key, type }
         socket.connect()
-        socket.auth = { username }
 
         socket.on("users:list", (list) => {
             listDOM.innerHTML = ""

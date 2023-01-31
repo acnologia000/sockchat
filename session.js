@@ -17,6 +17,8 @@ module.exports = class SessionX {
 
     async VerifySession(key, username) {
         var name = await this.client.get(key)
+
+        console.log(`key ${key} username ${username}`)
         if (username == name) {
             return true
         }
