@@ -84,12 +84,13 @@
         const URL = new window.URL(document.URL).origin;
         console.log(URL)
         const socket = io(URL, { autoConnect: false });
-        const username = prompt("enter username") + "_agent"
         const to_add = "COSTUMER_ID"
+        const username = window.localStorage.getItem("username")
+        const key = window.localStorage.getItem("skey")
+        const type = 'agent'
         var user_list = {}
 
-        socket.auth = { username }
-
+        socket.auth = { username, key, type }
         socket.connect()
 
         console.log("agent:connect:permanent firing");
@@ -98,6 +99,11 @@
         var messages = document.getElementById('messages');
         var form = document.getElementById('form');
         var input = document.getElementById('input');
+
+        fetch('/register_chat_session', {
+            method: 'POST',
+            body: JSON.stringify({ id: chatID, user: localStorage.getItem("username") })
+        })
 
         function Message(content) {
             socket.emit("message:private:permanent", {
@@ -114,7 +120,7 @@
             if (input.value) {
                 //socket.emit('chat message', input.value);
                 Message(input.value)
-                SaveMessage(input.value,"a")
+                SaveMessage(input.value, "a")
                 var item = document.createElement('li');
                 item.textContent = input.value;
                 messages.appendChild(item)
@@ -138,7 +144,7 @@
             var item = document.createElement('li');
             item.textContent = msg.content;
             messages.appendChild(item)
-            SaveMessage(msg.content,"c")
+            SaveMessage(msg.content, "c")
             window.scrollTo(0, document.body.scrollHeight);
         });
     </script>

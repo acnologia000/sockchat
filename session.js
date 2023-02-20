@@ -25,5 +25,16 @@ module.exports = class SessionX {
         return false
     }
 
+    async getAllKeyPairs() {
+        const keys = await this.client.keys("*")
+        const KeyValPairs = new Map()
+        for (const key in keys) {
+            const value = await this.client.get(key)
+            if (!value) {
+                KeyValPairs.set(key, value)
+            }
+        }
+    }
+
 }
 

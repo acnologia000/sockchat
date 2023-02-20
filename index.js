@@ -13,26 +13,36 @@ const misc = require("./misc.js")
 const SessionX = require("./session.js")
 const sessionPool = new SessionX()
 
+var agentList = new Array()
 var addressMap = new Map()
 var GeneratedOTPs = new Map()
 
 function sendOTP(username) { var rand = Math.floor(Math.random() * 10000); GeneratedOTPs.set(username, rand.toString()) }
-
+async function Authencticate(body) { return await sessionPool.VerifySession(body.key, body.username) }
 //==============================================================================================================
 
 app.use(express.static("./static"))
 app.use(express.json())
 
+app.get("/user/:id", (req, res) => { res.end(misc.agentChatPage.replace("COSTUMER_ID", req.params.id)) })
+app.get("/otp_map/", (req, res) => { res.json(Object.fromEntries(GeneratedOTPs)) }) // TODO:remove in production
+
 app.post("/agent_login", async (req, res) => {
     console.log(req.body)
     pool.query(misc.AgentLoginQuery, [req.body.username, req.body.password], async (err, resp) => {
         if (err) { res.status(500); res.end("INTERNAL_SERVER_ERROR"); console.log(err.stack); return }
-        resp.rowCount == 0 ? res.end("WRONG_CREDENTIALS") : res.end(`{"session_key":"${await sessionPool.StartSession(req.body.username)}"}`)
+        resp.rowCount != 0 ?
+            res.end(JSON.stringify({ 'session_key': await sessionPool.StartSession(req.body.username), 'username': req.body.username })) :
+            res.end("WRONG_CREDENTIALS")
     })
 })
-
-app.get("/user/:id", (req, res) => { res.end(misc.agentChatPage.replace("COSTUMER_ID", req.params.id)) })
-app.get("/otp_map/", (req, res) => { res.json(Object.fromEntries(GeneratedOTPs)) })
+app.post("/get_agent_list", (req, res) => {
+    if (!Authencticate(req.body)) {
+        res.end("INVALID_AUTH")
+        return
+    }
+    
+})
 
 io.use(async (socket, next) => {
     const username = socket.handshake.auth.username
@@ -40,37 +50,62 @@ io.use(async (socket, next) => {
     const key = socket.handshake.auth.key
 
     if (!username || !key || !type) { return next(new Error("invalid username")) }
-    console.log('middleware reached here')
 
     socket.username = username
     socket.key = key
     socket.type = type
-
-    if (type === 'agent' || type === 'master') {
+    console.log(type);
+    if (type == 'agent' || type == 'master') {
         if (!await sessionPool.VerifySession(key, username)) {
-            socket.emit('auth:status', "failed auth, wrong credentials")
             console.log('authentication failed');
             next(new Error('wrong key'))
         } else {
+            console.log('agent added');
+            type == 'agent' ? agentList.push(socket.id) : () => { }
         }
+    } else {
+        socket.taken = false
     }
     next();
 });
 
+
 io.on('connection', (socket) => {
+    var current_user_list = () => { // retrieves list of usrs that are not take and verified 
+        const users = []
+        for (let [id, socket] of io.of("/").sockets) {
+            if (socket.username.includes("_user") && socket.verified && !socket.taken) {
+                users.push({ userID: id, username: socket.username, })
+            }
+        }
+        return users
+    }
+
+    // distributes waiting / non taken users among agents
+    var distribute_users = () => {
+        if (agentList.length == 0) {
+            console.log('distribute_users ran but agent list was 0')
+
+            return
+        }
+        console.log('distribute_users ran for ', agentList.length, 'agents')
+        let lists = misc.chunkArray(current_user_list(), agentList.length)
+        console.log(lists);
+        for (let index = 0; index < lists.length; index++) {
+            const element = lists[index];
+            socket.to(agentList[index]).emit("users:list", element)
+        }
+    }
     socket.responses = Array()
     socket.verified = false
-    const users = [];
 
-    for (let [id, socket] of io.of("/").sockets) { if (socket.username.includes("_user") && socket.verified) { users.push({ userID: id, username: socket.username, }) } }
-
-    io.emit('users:list', users)
+    distribute_users()
 
     if (socket.username.includes("_user")) { addressMap.set(socket.username, socket.id) }
 
     socket.on("question:submit", async (answer) => {
         socket.responses.push(answer)
-        console.log(socket.responses);
+        //console.log(socket.responses);
         if (socket.responses.length != misc.standardQuestions.length + 1) {
             socket.emit("chat message", { content: misc.standardQuestions[socket.responses.length - 1] })
         } else {
@@ -86,24 +121,27 @@ io.on('connection', (socket) => {
             socket.emit("chat message", { content: "otp verified, now waiting for agent to connect" })
             socket.emit("setqmode", 3)
 
-            try { pool.query('insert into inquiries values($1, $2, $3, $4)', [...socket.responses, misc.getNanoSeconds()]).then(console.log).catch(console.log) }
-            catch (error) { console.log(error) }
+            pool
+                .query('insert into inquiries values($1, $2, $3, $4)', [...socket.responses, misc.getNanoSeconds()])
+                .catch(console.log)
 
-            const ulist = [];
-            for (let [id, socket] of io.of("/").sockets) { if (socket.username.includes("_user") && socket.verified) { ulist.push({ userID: id, username: socket.username, }) } }
-            io.emit('users:list', ulist)
+            distribute_users()
         } else { socket.emit("chat message", { content: "invalid otp, refresh page to try again" }) }
     })
 
     socket.on("message:private:permanent", ({ content, to }) => { socket.to(addressMap.get(to)).emit("chat message", { content, from: socket.id, }) });
     socket.on("private message", ({ content, to }) => { socket.to(to).emit("chat message", { content, from: socket.id, }) });
     socket.on("agent:connect:permanent", (data) => { socket.to(addressMap.get(data.to)).emit("agent:connect", { data: data, from: socket.id }) })
-    socket.on("agent:connect", (data) => { socket.to(data.to).emit("agent:connect", { data: data, from: socket.id }) })
+    socket.on("agent:connect", (data) => {
+        socket.to(data.to).emit("agent:connect", { data: data, from: socket.id })
+        distribute_users()
+    })
 
     socket.on('disconnect', (reason) => {
-        const users = [];
-        for (let [id, socket] of io.of("/").sockets) { if (socket.username.includes("_user") && socket.verified) { users.push({ userID: id, username: socket.username, }); } }
-        io.emit('users:list', users)
+        if (socket.type == 'agent') {
+            agentList = misc.removeItemFromArray(agentList, socket.id)
+        }
+        distribute_users()
     });
     socket.on("store:message", (message) => {
         pool

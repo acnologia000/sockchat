@@ -17,24 +17,32 @@
 
     <script>
 
+        
         const URL = new window.URL(document.URL).origin
         const socket = io(URL, { autoConnect: false })
         const username = window.localStorage.getItem("username")
         const key = window.localStorage.getItem("skey")
         const type = 'agent'
-
+        
         var listDOM = document.getElementById("client_list")
         var user_list = {}
-        var last_message = {}
-
-        socket.auth = { username, key, type }
-        socket.connect()
-
-        socket.on("users:list", (list) => {
+        var serial = 0
+        
+        function renderLi(list){
             listDOM.innerHTML = ""
             Array.from(list).forEach(elm => {
                 listDOM.innerHTML += `<li><a href='/user/${elm.username}'>${JSON.stringify(elm)}</a></li>`
             })
+        }
+        
+        socket.auth = { username, key, type }
+        socket.connect()
+
+        socket.on("serial:announce", (serialnumber) => serial = serialnumber)
+
+        socket.on("users:list", (list) => {
+            user_list = list
+            renderLi(list)
         })
 
     </script>

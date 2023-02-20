@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <script>
+        const key = localStorage.getItem("key")
+
+        if (!key) {
+            location.href = "login.html"
+        }
+    </script>
+</head>
+
+<body>
+    <h1>sample h1</h1>
+
+    <p>user count :
+    <div id="user_count">55</div>
+    </p>
+    <p>agent count :
+    <div id="agent_count">3</div>
+    </p>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <script>
+        const URL = new window.URL(document.URL).origin;
+        const socket = io(URL, { autoConnect: false });
+
+        if (!key) {
+            location.href = "login.html"
+        }
+
+        socket.auth = { key }
+        socket.connect()
+
+    </script>
+</body>
+
+</html>
