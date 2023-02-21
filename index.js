@@ -27,6 +27,15 @@ app.use(express.json())
 app.get("/user/:id", (req, res) => { res.end(misc.agentChatPage.replace("COSTUMER_ID", req.params.id)) })
 app.get("/otp_map/", (req, res) => { res.json(Object.fromEntries(GeneratedOTPs)) }) // TODO:remove in production
 
+app.post("/register_chat_session", async (req, res) => {
+    if (!req.body.username || !req.body.key || ! await Authencticate(req.body)) {
+        res.end("INVALID_AUTH")
+        return
+    }
+    console.log("authenticating");
+    pool.query(misc.ChatSessionCreateQuery, [req.body.chat_id, req.body.username, req.body.c_id], (err, _) => { !err ? res.end("SUCCESS") : res.end(err.message) })
+})
+
 app.post("/agent_login", async (req, res) => {
     console.log(req.body)
     pool.query(misc.AgentLoginQuery, [req.body.username, req.body.password], async (err, resp) => {
@@ -41,7 +50,7 @@ app.post("/get_agent_list", (req, res) => {
         res.end("INVALID_AUTH")
         return
     }
-    
+
 })
 
 io.use(async (socket, next) => {
@@ -55,7 +64,7 @@ io.use(async (socket, next) => {
     socket.key = key
     socket.type = type
     console.log(type);
-    if (type == 'agent' || type == 'master') {
+    if (type == 'agent' || type == 'chat_panel') {
         if (!await sessionPool.VerifySession(key, username)) {
             console.log('authentication failed');
             next(new Error('wrong key'))
@@ -122,7 +131,7 @@ io.on('connection', (socket) => {
             socket.emit("setqmode", 3)
 
             pool
-                .query('insert into inquiries values($1, $2, $3, $4)', [...socket.responses, misc.getNanoSeconds()])
+                .query('insert into inquiries values($1, $2, $3, $4, $5)', [...socket.responses, misc.getNanoSeconds(), socket.username])
                 .catch(console.log)
 
             distribute_users()

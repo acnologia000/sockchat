@@ -95,6 +95,8 @@
 
         var lastMessageTime = localStorage.getItem("lastMessageTime")
 
+        const costumer_session_id = makeid(56)
+
         if (lastMessageTime === null) {
             localStorage.setItem("lastMessageTime", Date.now().toString())
             localStorage.setItem("userID", makeid(7))
@@ -166,6 +168,8 @@
         })
 
         socket.on("setqmode", (mode) => qmode = mode)
+
+
     </script>
 </body>
 

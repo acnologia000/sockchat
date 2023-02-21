@@ -6,6 +6,7 @@ module.exports = {
     MessageInsertQuery: "INSERT INTO MESSAGES(chat_id, content, unix_time, sender_type) VALUES($1, $2::text, $3, $4::char)",
     AgentLoginQuery: "SELECT pass from agents where username = $1 and pass = $2",
     AgentCreateQuery: "insert into agents values($1, $2)",
+    ChatSessionCreateQuery: "insert into chat_sessions(chat_id , username, random_cid) values($1,$2,$3)",
     getNanoSeconds: function () { return parseInt(process.hrtime().reduce((total, x) => total + x.toString())) },
     makeid: function (length) {
         var result = '';
@@ -37,5 +38,3 @@ module.exports = {
         next()
     },
 }
-
-
