@@ -32,8 +32,8 @@ app.post("/register_chat_session", async (req, res) => {
         res.end("INVALID_AUTH")
         return
     }
-    console.log("authenticating");
-    pool.query(misc.ChatSessionCreateQuery, [req.body.chat_id, req.body.username, req.body.c_id], (err, _) => { !err ? res.end("SUCCESS") : res.end(err.message) })
+    console.log('firing query');
+    pool.query(misc.ChatSessionCreateQuery, [req.body.chat_id, req.body.username, req.body.c_id], (err, _) => { !err ? res.end("SUCCESS") : res.end(err.message+"FAIL") })
 })
 
 app.post("/agent_login", async (req, res) => {
@@ -50,7 +50,6 @@ app.post("/get_agent_list", (req, res) => {
         res.end("INVALID_AUTH")
         return
     }
-
 })
 
 io.use(async (socket, next) => {
@@ -146,7 +145,7 @@ io.on('connection', (socket) => {
         distribute_users()
     })
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', (_) => {
         if (socket.type == 'agent') {
             agentList = misc.removeItemFromArray(agentList, socket.id)
         }

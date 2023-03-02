@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Carter+One&family=Poiret+One&display=swap" rel="stylesheet">
+    <title>Document</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        main,
+        .section {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        nav {
+            background-color: #FF3366;
+        }
+
+        h1 {
+            color: whitesmoke;
+            font-family: 'Poiret One', cursive;
+            margin: 20px;
+            font-size: 35px;
+        }
+
+        main {
+            margin-top: 50px;
+            background-color: whitesmoke;
+        }
+
+
+        .info-card,
+        .section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .section {
+            flex-direction: row;
+            justify-content: space-around;
+            padding: 30px;
+        }
+
+        .border {
+            border-bottom: dotted 1px gray;
+        }
+
+        .info-card,
+        .action-card {
+            background-color: #2EC4B6;
+            color: whitesmoke;
+            font-family: 'Carter One', cursive;
+            padding: 20px;
+        }
+
+        h2 {
+            font-family: 'Carter One', cursive;
+        }
+
+        .action-card {
+            background-color: #20A4F3;
+            cursor: pointer;
+        }
+
+        .disabled {
+            background-color: gray ;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <h1>Admin Panel area</h1>
+    </nav>
+
+    <main>
+        <div class="section">
+            <h2>Stats At a glance</h2>
+        </div>
+        <!--stats -->
+        <div class="section border">
+            <div class="info-card">4 admins online</div>
+            <div class="info-card">5 costumers online</div>
+            <div class="info-card">1 costumer waiting</div>
+        </div>
+        <div class="section">
+            <h2>Actions</h2>
+        </div>
+        <div class="section">
+            <div class="action-card" onclick="location.href='add_agent.html'" >create new agent</div>
+            <div class="action-card">Chat logs</div>
+            <div class="action-card">Edit agent info</div>
+            <div class="action-card disabled">Download Data</div>
+        </div>
+    </main>
+
+</body>
+
+
+</html>

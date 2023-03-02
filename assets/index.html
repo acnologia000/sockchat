@@ -6,18 +6,29 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
+
+    <style>
+        .red {
+            color: red;
+        }
+
+        .blue {
+            color: blue;
+        }
+    </style>
     <script>
         const key = localStorage.getItem("key")
 
         if (!key) {
             location.href = "login.html"
         }
+
     </script>
 </head>
 
 <body>
     <h1>sample h1</h1>
-
+    <button onclick="LoadChat('some id')"> </button>
     <p>user count :
     <div id="user_count">55</div>
     </p>
@@ -26,18 +37,58 @@
     </p>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
-    <script>
-        const URL = new window.URL(document.URL).origin;
-        const socket = io(URL, { autoConnect: false });
+    <ul id="slist">
 
-        if (!key) {
-            location.href = "login.html"
+    </ul>
+
+    <ul id="messages">
+
+    </ul>
+
+    <script>
+        // const URL = new window.URL(document.URL).origin;
+        // const socket = io(URL, { autoConnect: false });
+
+        // if (!key) {
+        //     location.href = "login.html"
+        // }
+
+        // socket.auth = { key }
+        // socket.connect()
+        var listPageNumber = 0
+        const slist = document.getElementById("slist")
+        const msges = document.getElementById("messages")
+        function LoadChat(ChatID) {
+            console.log("loading chat id ", ChatID)
+            fetch("/get_chat_messages/" + ChatID, {
+                method: 'POST'
+            })
+                .then(t => t.text())
+                .then(t => {
+                    t = JSON.parse(t)
+                    msges.innerHTML = ""
+                    Array.from(t).forEach(item => {
+                        msges.innerHTML += `<li class="${item.sender_type == 'c' ? "blue" : "red"}"> ${item.content} </li>`
+                    })
+                })
         }
 
-        socket.auth = { key }
-        socket.connect()
+        function GetChatSessions() {
+            fetch("/get_chat_list/" + listPageNumber, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            })
+                .then(t => t.text())
+                .then(data => {
+                    data = JSON.parse(data)
+                    Array.from(data).forEach(entry => {
+                        slist.innerHTML += `<li><button onclick="LoadChat('${entry.chat_id}')">${entry.c_id} | ${entry.username} | ${entry.start_time}</button></li>`
+                    })
+                })
+        }
+        GetChatSessions()
 
-        
+
     </script>
 </body>
 

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Carter+One&family=Poiret+One&display=swap" rel="stylesheet">
+    <title>Document</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        main,
+        form,
+        .section {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        nav {
+            background-color: #FF3366;
+        }
+
+        h1 {
+            color: whitesmoke;
+            font-family: 'Poiret One', cursive;
+            margin: 20px;
+            font-size: 35px;
+        }
+
+        main {
+            margin-top: 50px;
+            background-color: whitesmoke;
+        }
+
+        form,
+        .section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .section {
+
+            justify-content: space-around;
+            padding: 30px;
+        }
+
+        h2 {
+            font-family: 'Carter One', cursive;
+        }
+
+        .disabled {
+            background-color: gray;
+        }
+
+        input,
+        button {
+            width: 400px;
+            margin: 20px;
+            padding: 5px;
+            font-family: 'Carter One', cursive;
+            border-radius: 0;
+            border: solid 1px;
+            color: #FF3366;
+            background-color: #F6F7F8;
+        }
+
+        button {
+            background-color: #FF3366;
+            color: #F6F7F8;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <h1>Create admin</h1>
+    </nav>
+
+    <main>
+        <div class="section">
+            <h2>New admin details</h2>
+            <br>
+            <form id="form" action="#">
+                <input type="text" name="username" placeholder="user id">
+                <input type="text" placeholder="name">
+                <input type="email" placeholder="email">
+                <input type="password" name="password" placeholder="passowrd">
+                <input type="password" placeholder=" confirm passowrd">
+                <button type="submit" id="btn">Create Admin</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById("form")
+        const btnn = document.getElementById("btn")
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            btnn.style.backgroundColor = "#EEFC57"
+            const formData = new FormData(form);
+            const submissionObject = {};
+            for (const [key, value] of formData.entries()) {
+                submissionObject[key] = value;
+            }
+
+            fetch('/create_agent', {
+                method: 'POST',
+                body: JSON.stringify(submissionObject)
+            })
+                .then(response => response.text())
+                .then(response => {
+                    if (response == "SUCCESSFUL") {
+                        btnn.style.backgroundColor = "#26A96C"
+                        btnn.innerText = "Registeration successful"
+                        setTimeout(() => {
+                            btnn.style.backgroundColor = "#FF3366"
+                            btnn.innerText = "Create admin"
+                        }, 1000)
+                    }
+                })
+                .catch(error => {
+                    btnn.style.backgroundColor = "red"
+                    btnn.innerText = `error: ${error}`
+                    setTimeout(() => {
+                        btnn.style.backgroundColor = "#FF3366"
+                        btnn.innerText = "Create admin"
+                    }, 1000)
+                });
+        });
+
+
+    </script>
+</body>
+
+
+</html>
+
+<!-- 
+    cleaner 
+
+    item add form  // admin only 
+    purchase register // staff 
+    consulption register // staff 
+    expense form // staff 
+ -->
